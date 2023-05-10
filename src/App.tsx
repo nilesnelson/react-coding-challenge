@@ -1,26 +1,27 @@
-import React from 'react';
-import logo from './logo.svg';
+import React, {Component} from 'react';
 import './App.css';
+import Map, {Marker} from 'react-map-gl';
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+
+class App extends Component {
+  render() {
+    return (
+      <div className="App">
+		<Map
+		  initialViewState={{
+			latitude: 37.8,
+			longitude: -122.4,
+			zoom: 14
+		  }}
+		  style={{width: 800, height: 600}}
+		  mapStyle="mapbox://styles/mapbox/streets-v9"
+		  mapboxAccessToken={process.env.REACT_APP_MAPBOX_ACCESS_TOKEN}
+		>
+		  <Marker longitude={-122.4} latitude={37.8} color="red" />
+		</Map>
+      </div>
+    );
+  }
 }
 
 export default App;
