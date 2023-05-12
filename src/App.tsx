@@ -12,10 +12,21 @@ function emptyEarthquakes(): Interface{
 }
 
 function App(){
-  const [data, setData] = useState<Interface>(emptyEarthquakes());
+  const [data, setData] = useState({
+    earthquakes: emptyEarthquakes(),
+    map_lat: 37.8,
+    map_long: -122.4,
+    map_zoom: 2
+  });
 
 	const onEarthquakeClick = (coordinates: number[]) => {
-		console.log(coordinates);
+      console.log(coordinates)
+      setData({
+        ...data,
+        map_lat: coordinates[0],
+        map_long: coordinates[1],
+        map_zoom: 3
+      })
 	}
   const getData=()=> {
     fetch('earthquakes.geojson'
@@ -28,9 +39,8 @@ function App(){
     )
     .then(response => {
       return response.json();
-    }).then(data => {
-      setData(data);
-      console.log(data.features);
+    }).then(json => {
+      setData({...data, earthquakes: json})
     }).catch((e: Error) => {
       console.log(e.message);
     });
@@ -43,15 +53,15 @@ function App(){
     <div className="map">
   <Map
     initialViewState={{
-    latitude: 37.8,
-    longitude: -122.4,
-    zoom: 2
+    latitude: data.map_lat,
+    longitude: data.map_long,
+    zoom: data.map_zoom
     }}
     style={{width: '75vw', height: 600}}
     mapStyle="mapbox://styles/mapbox/streets-v9"
     mapboxAccessToken={process.env.REACT_APP_MAPBOX_ACCESS_TOKEN}
   >
-		{data.features && data.features.map(earthquakeMarker =>
+		{data.earthquakes.features && data.earthquakes.features.map(earthquakeMarker =>
 			<Marker key={earthquakeMarker.id} longitude={earthquakeMarker.geometry.coordinates[0]} latitude={earthquakeMarker.geometry.coordinates[1]} color="red" />
 		)}
   </Map>
@@ -64,7 +74,7 @@ function App(){
 					</tr>
 			</thead>
 			<tbody>
-					{data.features && data.features.map(earthquake =>
+					{data.earthquakes.features && data.earthquakes.features.map(earthquake =>
 							<tr onClick={() => onEarthquakeClick(earthquake.geometry.coordinates)} key={earthquake.id}>
 									<td>{earthquake.properties.place}</td>
 							</tr>

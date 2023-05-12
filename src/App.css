@@ -40,3 +40,8 @@
     transform: rotate(360deg);
   }
 }
+
+.earthquakes {
+  height: 600px;
+  overflow: scroll;
+}
