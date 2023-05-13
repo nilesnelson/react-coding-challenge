@@ -1,8 +1,7 @@
 import React from 'react';
 import './App.css';
-import {useState, useCallback, useEffect} from "react";
-import Map, {Marker, Source, Layer, MapLayerMouseEvent, MapRef, PointLike} from 'react-map-gl';
-import { Interface } from "./interface";
+import {useState, useEffect} from "react";
+import Map, {Source, Layer, MapLayerMouseEvent, MapRef, Popup} from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type GeoJSON from 'geojson';
 
@@ -23,13 +22,19 @@ const layerStyle = {
   }
 };
 
+interface PopupInfo {
+	longitude: number
+	latitude: number
+	title: string
+	magnitude: number | null
+	timestamp: number
+}
+
 function App(){
 	const mapRef = React.useRef<MapRef | null>(null)
   const [data, setData] = useState(emptyEarthquakes());
+	const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
 
-	const onEarthquakeClick = (coordinates: number[]) => {
-      console.log(coordinates)
-	}
 	const onClick= (e: MapLayerMouseEvent) => {
 				if (mapRef.current !== null) {
 					const features = mapRef.current.queryRenderedFeatures(
@@ -37,14 +42,24 @@ function App(){
 						{ layers: ['point'] }
 					)
 					console.log(features)
-					if(features[0] && features[0].geometry.type === 'Point') {
+					const feature = features && features[0]
+					if(feature && feature.geometry.type === 'Point') {
+						const long = feature.geometry.coordinates[0];
+						const lat = feature.geometry.coordinates[1];
+						const zoom = mapRef.current.getZoom() > 7 ? mapRef.current.getZoom() : 7
 						mapRef.current.flyTo({
-								zoom: 7,
-								center: [
-									features[0].geometry.coordinates[0],
-									features[0].geometry.coordinates[1]
-								]
-							})
+								zoom: zoom,
+								center: [long, lat]
+							});
+						if(feature.properties) {
+							setPopupInfo({
+								longitude: long,
+								latitude: lat,
+								title: feature.properties.title,
+								magnitude: feature.properties.mag,
+								timestamp: feature.properties.time
+							});
+						}
 					}
 				}
 	};
@@ -86,6 +101,23 @@ function App(){
     <Source type="geojson" data={data}>
 			<Layer {...layerStyle} />
     </Source>
+		{popupInfo && (
+          <Popup
+            anchor="bottom"
+            longitude={Number(popupInfo.longitude)}
+            latitude={Number(popupInfo.latitude)}
+            onClose={() => setPopupInfo(null)}
+          >
+						<h4>{popupInfo.title}</h4>
+						<div>
+						Magnitude: {popupInfo.magnitude}
+						</div>
+						<div>
+						Timestamp: {popupInfo.timestamp}
+						</div>
+          </Popup>
+
+		)}
     
   </Map>
 	</div>
