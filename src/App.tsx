@@ -49,6 +49,25 @@ function App(){
 
 	const countryChange= (new_country: string) => {
 		setCountry(new_country);
+		const country_data = countries.features.find((country: GeoJSON.Feature) => country.properties && country.properties.ADMIN === new_country)
+		if(data && country_data) {
+			data.features.map((d: GeoJSON.GeoJsonProperties) => {
+				if(d){
+					const point_in_polygon = d3.geoContains(country_data.geometry, d.geometry.coordinates);
+					if (point_in_polygon && country_data.properties) {
+						d.properties.country = country_data.properties.ADMIN;
+					}
+				}
+				return d
+			});
+			setData(data);
+			if(mapRef && mapRef.current && mapRef.current) {
+				const earthquake_source = mapRef.current.getSource("earthquakes")
+				if (earthquake_source.type === "geojson") {
+					earthquake_source.setData(data);
+				}
+			}
+		}
 	}
 	const onClick= (e: MapLayerMouseEvent) => {
 				if (mapRef.current !== null) {
@@ -91,43 +110,33 @@ function App(){
       return response.json();
     }).then(json => {
       setCountries(json);
-			fetch('earthquakes.geojson'
-				,{
-					headers : { 
-						'Content-Type': 'application/json',
-						'Accept': 'application/json'
-					}
+    }).catch((e: Error) => {
+      console.log(e.message);
+    });
+		fetch('earthquakes.geojson'
+			,{
+				headers : { 
+					'Content-Type': 'application/json',
+					'Accept': 'application/json'
 				}
-			)
-			.then(response => {
-				return response.json();
-			}).then(earthquake_json=> {
-				earthquake_json.features = earthquake_json.features.map((d: GeoJSON.GeoJsonProperties) => {
-					if (d) {
-						if (json && json.features && d.properties.country === undefined) {
-							const earthquake_country = json.features.find((country: GeoJSON.Feature) => {
-								const point_in_polygon = d3.geoContains(country.geometry, d.geometry.coordinates);
-								return point_in_polygon;
-							})
-							if (earthquake_country && earthquake_country.properties) {
-								d.properties.country = earthquake_country.properties.ADMIN;
-								console.log(d.properties.country);
-							}
-						}
-						d.properties.hide = false
-						d.properties.year = new Date(d.properties.time).getFullYear();
-						d.properties.month = new Date(d.properties.time).getMonth();
-						d.properties.day = new Date(d.properties.time).getDay();
-					}
-					return d;
-				});
-				setData(earthquake_json);
-    }).catch((e: Error) => {
-      console.log(e.message);
-    });
-    }).catch((e: Error) => {
-      console.log(e.message);
-    });
+			}
+		)
+		.then(response => {
+			return response.json();
+		}).then(earthquake_json=> {
+			earthquake_json.features = earthquake_json.features.map((d: GeoJSON.GeoJsonProperties) => {
+				if (d) {
+					d.properties.hide = false
+					d.properties.year = new Date(d.properties.time).getFullYear();
+					d.properties.month = new Date(d.properties.time).getMonth();
+					d.properties.day = new Date(d.properties.time).getDay();
+				}
+				return d;
+			});
+			setData(earthquake_json);
+	}).catch((e: Error) => {
+		console.log(e.message);
+	});
   }
 	const filter = useMemo(() => {
 		if (["Any", ""].includes(country)) {
@@ -153,7 +162,7 @@ function App(){
     mapboxAccessToken={process.env.REACT_APP_MAPBOX_ACCESS_TOKEN}
 		ref={mapRef}
   >
-    <Source type="geojson" data={data}>
+    <Source id="earthquakes" type="geojson" data={data}>
 			<Layer {...layerStyle} filter={filter}/>
     </Source>
 		{popupInfo && (
